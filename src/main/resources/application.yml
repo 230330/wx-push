@@ -1,0 +1,31 @@
+wx:
+  config:
+    appId: "wxbde01b6b360d94ba"
+    appSecret: "de853e89620357a9e1b440cd54685929"
+    templateId: "QVM8pNHdGSQ9vreKKtgTEGe0CSm8y46NiBXvRnMxTFg"
+    openidList:
+      - "oYCr65zFDpnwTRmUFpkmGE4WzSh4"
+      - "oYCr65wwAU4jQcsK3SPhSbJTD8AQ"
+
+message:
+  config:
+    birthday1: "05-08"
+    birthday2: "06-08"
+    togetherDate: "2023-03-30"
+    message: "Have a nice day and love you everyday,ZhouJing"
+
+#另一个账户  44195139  f6NNlC87   72783351  szR3o26N  过期了   重新注册一个就行  http://yiketianqi.com/user/index
+weather:
+  config:
+    appid: "85399125"
+    appSecret: "3aetHbT9"
+    city: "都匀"
+
+
+ApiSpace:
+  enableDaily: false
+  token: "a1kth55g81w7qf3tf65gf6tczwzvub8m"
+
+server:
+  port: 8081
+
