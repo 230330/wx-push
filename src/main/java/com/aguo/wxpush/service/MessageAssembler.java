@@ -9,9 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
-import java.text.ParseException;
-import java.util.Calendar;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,8 +61,8 @@ public class MessageAssembler {
     }
 
     private void assembleDateHeader(Map<String, Object> data) {
-        String date = DateUtil.formatDate(new Date(), "yyyy-MM-dd");
-        String week = DateUtil.getWeekOfDate(new Date());
+        String date = DateUtil.formatDate(LocalDate.now(), "yyyy-MM-dd");
+        String week = DateUtil.getWeekOfDate(LocalDate.now());
         JSONObject first = JsonObjectUtil.packJsonObject(date + " " + week, "#EED016");
         data.put("first", first);
         log.debug("日期头部: {}", first);
@@ -96,7 +95,7 @@ public class MessageAssembler {
     }
 
     private void assembleBirthday(Map<String, Object> data) {
-        String date = DateUtil.formatDate(new Date(), "yyyy-MM-dd");
+        String date = DateUtil.formatDate(LocalDate.now(), "yyyy-MM-dd");
 
         JSONObject birthDate1 = buildBirthdayJson(wxConfig.getBirthday1(), date);
         data.put("birthDate1", birthDate1);
@@ -113,7 +112,7 @@ public class MessageAssembler {
     }
 
     private void assembleTogetherDays(Map<String, Object> data) {
-        String date = DateUtil.formatDate(new Date(), "yyyy-MM-dd");
+        String date = DateUtil.formatDate(LocalDate.now(), "yyyy-MM-dd");
         String startDate = wxConfig.getTogetherDate();
 
         try {
@@ -125,7 +124,7 @@ public class MessageAssembler {
             data.put("togetherMonth", JsonObjectUtil.packJsonObject(togetherMonth, "#FEABB5"));
             data.put("togetherDate", JsonObjectUtil.packJsonObject(togetherDay, "#FEABB5"));
             log.debug("纪念日: {}年 {}月 {}天", togetherYear, togetherMonth, togetherDay);
-        } catch (ParseException e) {
+        } catch (DateTimeParseException e) {
             log.error("纪念日计算失败: {}", e.getMessage(), e);
         }
     }
@@ -160,14 +159,14 @@ public class MessageAssembler {
      */
     private JSONObject buildBirthdayJson(String birthday, String currentDate) {
         try {
-            Calendar calendar = Calendar.getInstance();
-            String targetDate = calendar.get(Calendar.YEAR) + "-" + birthday;
+            int year = LocalDate.now().getYear();
+            String targetDate = year + "-" + birthday;
             long days = Long.parseLong(DateUtil.birthDayBetween(currentDate, targetDate));
             if (days < 0) {
                 days += 365;
             }
             return JsonObjectUtil.packJsonObject(days + "天", "#6EEDE2");
-        } catch (ParseException e) {
+        } catch (DateTimeParseException e) {
             log.error("生日计算失败: {}", e.getMessage(), e);
             return JsonObjectUtil.packJsonObject("无法识别", "#6EEDE2");
         }

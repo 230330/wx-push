@@ -1,15 +1,12 @@
 package com.aguo.wxpush.utils;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Calendar;
-import java.util.Date;
 
 /**
- * 日期工具类
+ * 日期工具类（统一使用 java.time API）
  */
 public class DateUtil {
 
@@ -18,28 +15,26 @@ public class DateUtil {
     private static final String[] WEEK_DAYS = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
 
     /**
-     * 将Date对象转换为指定格式的字符串
+     * 将LocalDate转换为指定格式的字符串
      *
-     * @param date   Date对象
+     * @param date   LocalDate对象
      * @param format 格式化字符串
      * @return 格式化后的日期字符串
      */
-    public static String formatDate(Date date, String format) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat(format);
-        return dateFormat.format(date);
+    public static String formatDate(LocalDate date, String format) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+        return date.format(formatter);
     }
 
     /**
      * 根据日期获取星期
+     *
+     * @param date LocalDate对象
+     * @return 星期几的中文表示
      */
-    public static String getWeekOfDate(Date date) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        int w = cal.get(Calendar.DAY_OF_WEEK) - 1;
-        if (w < 0) {
-            w = 0;
-        }
-        return WEEK_DAYS[w];
+    public static String getWeekOfDate(LocalDate date) {
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        return WEEK_DAYS[dayOfWeek.getValue() % 7];
     }
 
     /**
@@ -49,13 +44,10 @@ public class DateUtil {
      * @param endDate   结束日期，格式 yyyy-MM-dd
      * @return 天数差 +1（包含当天）
      */
-    public static String daysBetween(String startDate, String endDate) throws ParseException {
-        long nd = 1000L * 24 * 60 * 60;
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        Date newStartDate = sdf.parse(startDate);
-        Date newEndDate = sdf.parse(endDate);
-        long diff = newEndDate.getTime() - newStartDate.getTime();
-        return String.valueOf(diff / nd + 1);
+    public static String daysBetween(String startDate, String endDate) {
+        LocalDate start = LocalDate.parse(startDate, DATE_FORMATTER);
+        LocalDate end = LocalDate.parse(endDate, DATE_FORMATTER);
+        return String.valueOf(ChronoUnit.DAYS.between(start, end) + 1);
     }
 
     /**
@@ -65,13 +57,10 @@ public class DateUtil {
      * @param endDate   目标日期，格式 yyyy-MM-dd
      * @return 天数差
      */
-    public static String birthDayBetween(String startDate, String endDate) throws ParseException {
-        long nd = 1000L * 24 * 60 * 60;
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        Date newStartDate = sdf.parse(startDate);
-        Date newEndDate = sdf.parse(endDate);
-        long diff = newEndDate.getTime() - newStartDate.getTime();
-        return String.valueOf(diff / nd);
+    public static String birthDayBetween(String startDate, String endDate) {
+        LocalDate start = LocalDate.parse(startDate, DATE_FORMATTER);
+        LocalDate end = LocalDate.parse(endDate, DATE_FORMATTER);
+        return String.valueOf(ChronoUnit.DAYS.between(start, end));
     }
 
     /**
@@ -81,10 +70,10 @@ public class DateUtil {
      * @param endDate   结束日期，格式 yyyy-MM-dd
      * @return 月数差 +1
      */
-    public static String monthsBetween(String startDate, String endDate) throws ParseException {
-        LocalDate startTime = LocalDate.parse(startDate, DATE_FORMATTER);
-        LocalDate endTime = LocalDate.parse(endDate, DATE_FORMATTER);
-        return String.valueOf(ChronoUnit.MONTHS.between(startTime, endTime) + 1);
+    public static String monthsBetween(String startDate, String endDate) {
+        LocalDate start = LocalDate.parse(startDate, DATE_FORMATTER);
+        LocalDate end = LocalDate.parse(endDate, DATE_FORMATTER);
+        return String.valueOf(ChronoUnit.MONTHS.between(start, end) + 1);
     }
 
     /**
@@ -94,9 +83,9 @@ public class DateUtil {
      * @param endDate   结束日期，格式 yyyy-MM-dd
      * @return 年数差
      */
-    public static String yearsBetween(String startDate, String endDate) throws ParseException {
-        LocalDate startTime = LocalDate.parse(startDate, DATE_FORMATTER);
-        LocalDate endTime = LocalDate.parse(endDate, DATE_FORMATTER);
-        return String.valueOf(ChronoUnit.YEARS.between(startTime, endTime));
+    public static String yearsBetween(String startDate, String endDate) {
+        LocalDate start = LocalDate.parse(startDate, DATE_FORMATTER);
+        LocalDate end = LocalDate.parse(endDate, DATE_FORMATTER);
+        return String.valueOf(ChronoUnit.YEARS.between(start, end));
     }
 }
