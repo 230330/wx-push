@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Property>
+        <Property name="LOG_DIR">logs</Property>
+    </Properties>
+
+    <Appenders>
+        <!-- 控制台输出 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <!-- 滚动日志：按日期+大小滚动 -->
+        <RollingFile name="RollingFile" fileName="${LOG_DIR}/wx-push.log"
+                     filePattern="${LOG_DIR}/wx-push-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <!-- 每天滚动一次 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <!-- 单文件最大50MB -->
+                <SizeBasedTriggeringPolicy size="50MB"/>
+            </Policies>
+            <!-- 保留30天，最多20个文件 -->
+            <DefaultRolloverStrategy max="20">
+                <Delete basePath="${LOG_DIR}" maxDepth="1">
+                    <IfFileName glob="wx-push-*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <!-- 错误日志单独文件 -->
+        <RollingFile name="ErrorFile" fileName="${LOG_DIR}/wx-push-error.log"
+                     filePattern="${LOG_DIR}/wx-push-error-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="50MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="20">
+                <Delete basePath="${LOG_DIR}" maxDepth="1">
+                    <IfFileName glob="wx-push-error-*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- 项目日志级别 -->
+        <Logger name="com.aguo.wxpush" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+            <AppenderRef ref="ErrorFile"/>
+        </Logger>
+
+        <!-- 第三方日志降级 -->
+        <Logger name="okhttp3" level="WARN"/>
+        <Logger name="com.alibaba.fastjson" level="WARN"/>
+
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+            <AppenderRef ref="ErrorFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

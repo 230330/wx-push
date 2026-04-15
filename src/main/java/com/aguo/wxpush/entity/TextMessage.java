@@ -1,59 +1,25 @@
 package com.aguo.wxpush.entity;
 
+import lombok.Data;
 
 /**
- * @projectName：wx-push-master
- * @title: TextMessage.java
- * @description: 实体类
- * @author: hezf
- * @created 2023/3/27 16:05
+ * 微信文本消息实体
  */
-
+@Data
 public class TextMessage {
-    private String ToUserName;
-    private String FromUserName;
-    private Long CreateTime;
-    private  String MsgType;
- 
-    private String Content;
 
-    public String getToUserName() {
-        return ToUserName;
-    }
+    /** 接收方 openid */
+    private String toUserName;
 
-    public void setToUserName(String toUserName) {
-        ToUserName = toUserName;
-    }
+    /** 发送方 openid */
+    private String fromUserName;
 
-    public String getFromUserName() {
-        return FromUserName;
-    }
+    /** 消息创建时间戳 */
+    private Long createTime;
 
-    public void setFromUserName(String fromUserName) {
-        FromUserName = fromUserName;
-    }
+    /** 消息类型 */
+    private String msgType;
 
-    public Long getCreateTime() {
-        return CreateTime;
-    }
-
-    public void setCreateTime(Long createTime) {
-        CreateTime = createTime;
-    }
-
-    public String getMsgType() {
-        return MsgType;
-    }
-
-    public void setMsgType(String msgType) {
-        MsgType = msgType;
-    }
-
-    public String getContent() {
-        return Content;
-    }
-
-    public void setContent(String content) {
-        Content = content;
-    }
+    /** 消息内容 */
+    private String content;
 }
