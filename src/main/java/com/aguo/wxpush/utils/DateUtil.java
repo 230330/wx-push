@@ -88,4 +88,30 @@ public class DateUtil {
         LocalDate end = LocalDate.parse(endDate, DATE_FORMATTER);
         return String.valueOf(ChronoUnit.YEARS.between(start, end));
     }
+
+    /**
+     * 判断今天是否是给定的生日日期
+     *
+     * @param birthday 生日，格式 MM-dd
+     * @return 如果今天是该生日则返回 true
+     */
+    public static boolean isBirthdayToday(String birthday) {
+        if (birthday == null || birthday.isEmpty()) {
+            return false;
+        }
+        LocalDate today = LocalDate.now();
+        String todayStr = formatDate(today, "MM-dd");
+        return todayStr.equals(birthday);
+    }
+
+    /**
+     * 计算年龄（周岁），基于出生日期
+     *
+     * @param birthYear 出生年份
+     * @return 周岁年龄
+     */
+    public static int calculateAge(int birthYear) {
+        LocalDate today = LocalDate.now();
+        return today.getYear() - birthYear;
+    }
 }

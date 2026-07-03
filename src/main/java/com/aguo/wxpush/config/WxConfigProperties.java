@@ -43,8 +43,20 @@ public class WxConfigProperties {
     /** 生日1，格式 MM-dd */
     private String birthday1;
 
+    /** 生日1姓名/昵称 */
+    private String birthday1Name;
+
+    /** 生日1祝福语（生日当天替换默认message） */
+    private String birthday1Message;
+
     /** 生日2，格式 MM-dd */
     private String birthday2;
+
+    /** 生日2姓名/昵称 */
+    private String birthday2Name;
+
+    /** 生日2祝福语（生日当天替换默认message） */
+    private String birthday2Message;
 
     /** 自定义推送消息 */
     private String message;
