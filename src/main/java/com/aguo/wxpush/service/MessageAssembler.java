@@ -54,10 +54,44 @@ public class MessageAssembler {
         // 5. 每日一句
         assembleDailyProverb(data);
 
-        // 6. 自定义消息
-        data.put("message", JsonObjectUtil.packJsonObject(wxConfig.getMessage(), "#000000"));
+        // 6. 自定义消息（生日当天替换为生日祝福）
+        String message = resolveBirthdayMessage();
+        data.put("message", JsonObjectUtil.packJsonObject(message, "#000000"));
 
         return data;
+    }
+
+    /**
+     * 判断今天是否为生日，返回对应的消息内容
+     * - 普通日：返回配置的默认 message
+     * - 单人生日：返回该人的生日祝福语
+     * - 两人同一天生日：合并两人的生日祝福
+     */
+    private String resolveBirthdayMessage() {
+        boolean isBirthday1 = DateUtil.isBirthdayToday(wxConfig.getBirthday1());
+        boolean isBirthday2 = DateUtil.isBirthdayToday(wxConfig.getBirthday2());
+
+        if (isBirthday1 && isBirthday2) {
+            // 两人同一天生日
+            String msg1 = wxConfig.getBirthday1Message();
+            String msg2 = wxConfig.getBirthday2Message();
+            if (msg1 != null && msg2 != null) {
+                return msg1 + "\n" + msg2;
+            }
+            return msg1 != null ? msg1 : (msg2 != null ? msg2 : wxConfig.getMessage());
+        }
+
+        if (isBirthday1) {
+            String msg = wxConfig.getBirthday1Message();
+            return (msg != null && !msg.isEmpty()) ? msg : wxConfig.getMessage();
+        }
+
+        if (isBirthday2) {
+            String msg = wxConfig.getBirthday2Message();
+            return (msg != null && !msg.isEmpty()) ? msg : wxConfig.getMessage();
+        }
+
+        return wxConfig.getMessage();
     }
 
     private void assembleDateHeader(Map<String, Object> data) {
@@ -96,7 +130,10 @@ public class MessageAssembler {
 
     private void assembleBirthday(Map<String, Object> data) {
         String date = DateUtil.formatDate(LocalDate.now(), "yyyy-MM-dd");
+        boolean isBirthday1 = DateUtil.isBirthdayToday(wxConfig.getBirthday1());
+        boolean isBirthday2 = DateUtil.isBirthdayToday(wxConfig.getBirthday2());
 
+        // 生日倒计时
         JSONObject birthDate1 = buildBirthdayJson(wxConfig.getBirthday1(), date);
         data.put("birthDate1", birthDate1);
         log.debug("生日1: {}", birthDate1);
@@ -106,8 +143,23 @@ public class MessageAssembler {
         log.debug("生日2: {}", birthDate2);
 
         // 当天生日的祝福
-        if ("0天".equals(birthDate1.getString("value"))) {
-            data.put("zhufuyu", JsonObjectUtil.packJsonObject("生日快乐，宝贝！", "#6EEDE2"));
+        if (isBirthday1 && isBirthday2) {
+            // 两人同一天生日
+            String name1 = StringUtils.hasText(wxConfig.getBirthday1Name()) ? wxConfig.getBirthday1Name() : "宝贝";
+            String name2 = StringUtils.hasText(wxConfig.getBirthday2Name()) ? wxConfig.getBirthday2Name() : "家人";
+            String zhufuyu = "🎂 " + name1 + " & " + name2 + " 生日快乐！🎉";
+            data.put("zhufuyu", JsonObjectUtil.packJsonObject(zhufuyu, "#FF6B6B"));
+            log.info("今天是 {} 和 {} 的生日！", name1, name2);
+        } else if (isBirthday1) {
+            String name = StringUtils.hasText(wxConfig.getBirthday1Name()) ? wxConfig.getBirthday1Name() : "宝贝";
+            String zhufuyu = "🎂 " + name + " 生日快乐！🎉";
+            data.put("zhufuyu", JsonObjectUtil.packJsonObject(zhufuyu, "#FF6B6B"));
+            log.info("今天是 {} 的生日！", name);
+        } else if (isBirthday2) {
+            String name = StringUtils.hasText(wxConfig.getBirthday2Name()) ? wxConfig.getBirthday2Name() : "家人";
+            String zhufuyu = "🎂 " + name + " 生日快乐！🎉";
+            data.put("zhufuyu", JsonObjectUtil.packJsonObject(zhufuyu, "#FF6B6B"));
+            log.info("今天是 {} 的生日！", name);
         }
     }
 

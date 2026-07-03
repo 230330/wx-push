@@ -11,7 +11,11 @@ wx:
     city: "贵阳"
     togetherDate: "2023-03-30"
     birthday1: "05-08"
+    birthday1Name: "宝贝"
+    birthday1Message: "🎂 生日快乐，小宝！愿你每天都开心，快乐！"
     birthday2: "06-08"
+    birthday2Name: "自己"
+    birthday2Message: "🎂 生日快乐！愿你心想事成，天天都有好心情！"
     message: "Have a nice day and love you everyday,ZhouJing"
     enableDaily: false
     token: "a1kth55g81w7qf3tf65gf6tczwzvub8m"
