@@ -1,0 +1,35 @@
+# ==========================================
+# wx-push 配置模板
+# 使用方式：复制为 application.yml 并填入真实值，
+# 或通过环境变量注入（推荐）
+# ==========================================
+
+wx:
+  config:
+    # === 微信公众号配置 ===
+    appId: "your_app_id"
+    appSecret: "your_app_secret"
+    # 微信服务器配置的 Token（公众号后台 -> 基本配置 -> 服务器配置）
+    verifyToken: "your_verify_token"
+    templateId: "your_template_id"
+    openidList:
+      - "openid_user1"
+      - "openid_user2"
+    # === 天气API配置（一客天气 https://v1.yiketianqi.com） ===
+    weatherAppId: "your_weather_appid"
+    weatherAppSecret: "your_weather_appsecret"
+    city: "贵阳"
+    # === 纪念日 & 生日配置 ===
+    togetherDate: "2023-03-30"
+    birthday1: "05-08"
+    birthday1Name: "宝贝"
+    birthday1Message: "🎂 生日快乐，小宝！愿你每天都开心，快乐！"
+    birthday2: "06-08"
+    birthday2Name: "自己"
+    birthday2Message: "🎂 生日快乐！愿你心想事成，天天都有好心情！"
+    message: "Have a nice day and love you everyday"
+    enableDaily: false
+    token: ""
+
+server:
+  port: 8081

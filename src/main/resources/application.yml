@@ -1,24 +1,29 @@
 wx:
   config:
-    appId: "wxbde01b6b360d94ba"
-    appSecret: "de853e89620357a9e1b440cd54685929"
-    templateId: "QVM8pNHdGSQ9vreKKtgTEGe0CSm8y46NiBXvRnMxTFg"
+    # === 微信公众号配置（敏感信息通过环境变量注入） ===
+    appId: "${WX_APP_ID}"
+    appSecret: "${WX_APP_SECRET}"
+    # 微信服务器配置的 Token，用于签名验证
+    verifyToken: "${WX_VERIFY_TOKEN}"
+    templateId: "${WX_TEMPLATE_ID}"
     openidList:
-      - "oYCr65zFDpnwTRmUFpkmGE4WzSh4"
-      - "oYCr65wwAU4jQcsK3SPhSbJTD8AQ"
-    weatherAppId: "58275617"
-    weatherAppSecret: "Z1aljHBS"
-    city: "贵阳"
-    togetherDate: "2023-03-30"
-    birthday1: "05-08"
-    birthday1Name: "宝贝"
-    birthday1Message: "🎂 生日快乐，小宝！愿你每天都开心，快乐！"
-    birthday2: "06-08"
-    birthday2Name: "自己"
-    birthday2Message: "🎂 生日快乐！愿你心想事成，天天都有好心情！"
-    message: "Have a nice day and love you everyday,ZhouJing"
-    enableDaily: false
-    token: "a1kth55g81w7qf3tf65gf6tczwzvub8m"
+      - "${WX_OPENID_1}"
+      - "${WX_OPENID_2}"
+    # === 天气API配置 ===
+    weatherAppId: "${WEATHER_APP_ID}"
+    weatherAppSecret: "${WEATHER_APP_SECRET}"
+    city: "${WEATHER_CITY:贵阳}"
+    # === 纪念日 & 生日配置 ===
+    togetherDate: "${TOGETHER_DATE:2023-03-30}"
+    birthday1: "${BIRTHDAY_1:05-08}"
+    birthday1Name: "${BIRTHDAY_1_NAME:宝贝}"
+    birthday1Message: "${BIRTHDAY_1_MSG:🎂 生日快乐，小宝！愿你每天都开心，快乐！}"
+    birthday2: "${BIRTHDAY_2:06-08}"
+    birthday2Name: "${BIRTHDAY_2_NAME:自己}"
+    birthday2Message: "${BIRTHDAY_2_MSG:🎂 生日快乐！愿你心想事成，天天都有好心情！}"
+    message: "${CUSTOM_MESSAGE:Have a nice day and love you everyday,ZhouJing}"
+    enableDaily: ${ENABLE_DAILY:false}
+    token: "${APISPACE_TOKEN:}"
 
 server:
   port: 8081

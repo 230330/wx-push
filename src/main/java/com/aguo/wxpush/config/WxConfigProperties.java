@@ -22,6 +22,9 @@ public class WxConfigProperties {
     /** 微信公众号 appSecret */
     private String appSecret;
 
+    /** 微信服务器配置的 Token，用于签名验证 */
+    private String verifyToken;
+
     /** 模板消息ID */
     private String templateId;
 
