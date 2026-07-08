@@ -37,8 +37,8 @@ public class WxConfigProperties {
     /** 天气API - appSecret */
     private String weatherAppSecret;
 
-    /** 天气查询城市 */
-    private String city;
+    /** 天气查询城市（volatile 保证多线程可见性） */
+    private volatile String city;
 
     /** 纪念日（在一起日期），格式 yyyy-MM-dd */
     private String togetherDate;
@@ -69,4 +69,20 @@ public class WxConfigProperties {
 
     /** ApiSpace token（每日一句接口） */
     private String token;
+
+    /**
+     * 标准化城市名称：去除省/市/区/县后缀
+     *
+     * @param city 原始城市名称
+     * @return 标准化后的城市名称
+     */
+    public static String normalizeCity(String city) {
+        if (city == null || city.isEmpty()) {
+            return city;
+        }
+        if (city.contains("省") || city.contains("市") || city.contains("区") || city.contains("县")) {
+            return city.substring(0, city.length() - 1);
+        }
+        return city;
+    }
 }

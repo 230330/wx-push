@@ -15,6 +15,8 @@ import org.springframework.util.StringUtils;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 
 /**
@@ -70,6 +72,7 @@ public class SendServiceImpl implements SendService {
 
     /**
      * 发送模板消息给指定用户
+     * 自动处理 token 过期（errcode=40001）并重试一次
      */
     private void sendTemplateMessage(String accessToken, String openId,
                                       Map<String, Object> templateData,
@@ -79,15 +82,25 @@ public class SendServiceImpl implements SendService {
         templateMsg.put("template_id", wxConfig.getTemplateId());
         templateMsg.put("data", new JSONObject(templateData));
 
-        String url = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=" + accessToken;
-        String response = HttpUtil.sendPost(url, templateMsg.toJSONString());
+        JSONObject result = doSendTemplateMessage(accessToken, templateMsg);
 
-        if (!StringUtils.hasText(response)) {
+        if (result == null) {
             throw new RuntimeException("微信推送请求失败，响应为空");
         }
 
-        JSONObject result = JSONObject.parseObject(response);
         String errcode = result.getString("errcode");
+        if ("40001".equals(errcode) || "42001".equals(errcode)) {
+            // Token 过期或失效，刷新后重试一次
+            log.warn("AccessToken 失效(errcode={})，刷新后重试", errcode);
+            accessToken = accessTokenService.refreshAccessToken();
+            result = doSendTemplateMessage(accessToken, templateMsg);
+
+            if (result == null) {
+                throw new RuntimeException("微信推送重试失败，响应为空");
+            }
+            errcode = result.getString("errcode");
+        }
+
         if (!"0".equals(errcode)) {
             JSONObject error = new JSONObject();
             error.put("openid", openId);
@@ -100,25 +113,64 @@ public class SendServiceImpl implements SendService {
     }
 
     /**
+     * 执行一次模板消息发送，返回响应 JSON
+     */
+    private JSONObject doSendTemplateMessage(String accessToken, JSONObject templateMsg) {
+        String url = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=" + accessToken;
+        String response = HttpUtil.sendPost(url, templateMsg.toJSONString());
+
+        if (!StringUtils.hasText(response)) {
+            return null;
+        }
+        return JSONObject.parseObject(response);
+    }
+
+    /**
      * 处理微信消息回调
+     * 解析用户消息 -> 构建回复 XML -> 写入响应 -> 返回消息内容
      */
     @Override
     public String messageHandle(HttpServletRequest request, HttpServletResponse response) {
         response.setCharacterEncoding("utf-8");
         Map<String, String> resultMap = MessageUtil.parseXml(request);
 
-        TextMessage textMessage = new TextMessage();
-        textMessage.setToUserName(resultMap.get("FromUserName"));
-        textMessage.setFromUserName(resultMap.get("ToUserName"));
-        textMessage.setCreateTime(new Date().getTime());
-        textMessage.setMsgType(MessageUtil.RESP_MESSAGE_TYPE_TEXT);
+        String msgType = resultMap.get("MsgType");
+        String fromUser = resultMap.get("FromUserName");
+        String toUser = resultMap.get("ToUserName");
+        String content = resultMap.get("Content");
 
-        if ("text".equals(resultMap.get("MsgType"))) {
-            textMessage.setContent(resultMap.get("Content"));
+        // 构建微信回复消息
+        TextMessage replyMessage = new TextMessage();
+        replyMessage.setToUserName(fromUser);
+        replyMessage.setFromUserName(toUser);
+        replyMessage.setCreateTime(System.currentTimeMillis() / 1000);
+        replyMessage.setMsgType(MessageUtil.RESP_MESSAGE_TYPE_TEXT);
+
+        if ("text".equals(msgType)) {
+            String city = content != null ? content.trim() : "";
+            replyMessage.setContent("已切换城市到「" + city + "」，正在为您推送天气信息...");
+
+            // 将回复 XML 写入响应
+            writeXmlResponse(response, MessageUtil.textMessageToXml(replyMessage));
+
+            return city;
         } else {
-            textMessage.setContent("目前仅支持文本呦");
+            replyMessage.setContent("目前仅支持文本消息，请直接发送城市名称（如「北京」）");
+            writeXmlResponse(response, MessageUtil.textMessageToXml(replyMessage));
+            return null;
         }
-        return textMessage.getContent();
+    }
+
+    /**
+     * 将 XML 内容写入 HttpServletResponse
+     */
+    private void writeXmlResponse(HttpServletResponse response, String xml) {
+        response.setContentType("application/xml;charset=utf-8");
+        try (PrintWriter writer = response.getWriter()) {
+            writer.write(xml);
+        } catch (IOException e) {
+            log.error("写入回复消息失败: {}", e.getMessage(), e);
+        }
     }
 
     private String buildResult(boolean success, String message) {

@@ -31,3 +31,28 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### 编译生成的文件 ###
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+### IDE 相关文件（IDEA 专属） ###
+.idea/
+*.iml
+*.iws
+*.ipr
+
+### 日志文件 ###
+logs/
+*.log
+
+### 系统文件 ###
+.DS_Store
+
+# 环境变量密钥脚本
+env.ps1
+# VSCode本地启动配置（含明文密钥）
+.vscode/launch.json

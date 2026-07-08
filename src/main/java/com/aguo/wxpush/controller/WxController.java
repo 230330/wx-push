@@ -4,7 +4,6 @@ import com.aguo.wxpush.config.WxConfigProperties;
 import com.aguo.wxpush.service.SendService;
 import com.aguo.wxpush.utils.SignatureUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.HtmlUtils;
@@ -29,13 +28,11 @@ public class WxController {
     private SendService sendService;
 
     /**
-     * 每日定时推送 + 手动触发推送
-     * cron: 每天早上8:30执行
+     * 手动触发推送
      */
-    @Scheduled(cron = "0 30 8 ? * *")
     @GetMapping("/send")
     public String send() {
-        log.info("开始执行消息推送...");
+        log.info("手动触发消息推送...");
         try {
             return sendService.sendWeChatMsg();
         } catch (Exception e) {
@@ -50,7 +47,7 @@ public class WxController {
     @GetMapping("/changeConfig")
     public void changeConfig(@RequestParam String city, HttpServletResponse response) throws IOException {
         log.info("修改城市配置: {}", city);
-        String normalizedCity = normalizeCity(city);
+        String normalizedCity = WxConfigProperties.normalizeCity(city);
         wxConfig.setCity(normalizedCity);
 
         response.setCharacterEncoding("utf-8");
@@ -95,7 +92,7 @@ public class WxController {
 
         String city = sendService.messageHandle(request, response);
         if (city != null && !city.isEmpty()) {
-            String normalizedCity = normalizeCity(city);
+            String normalizedCity = WxConfigProperties.normalizeCity(city);
             wxConfig.setCity(normalizedCity);
             sendService.sendWeChatMsg();
         }
@@ -115,18 +112,5 @@ public class WxController {
             return true;
         }
         return SignatureUtil.verify(verifyToken, signature, timestamp, nonce);
-    }
-
-    /**
-     * 去除城市名称中的省/市/区/县后缀
-     */
-    private String normalizeCity(String city) {
-        if (city == null || city.isEmpty()) {
-            return city;
-        }
-        if (city.contains("省") || city.contains("市") || city.contains("区") || city.contains("县")) {
-            return city.substring(0, city.length() - 1);
-        }
-        return city;
     }
 }
