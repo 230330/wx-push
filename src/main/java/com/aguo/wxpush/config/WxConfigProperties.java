@@ -31,11 +31,23 @@ public class WxConfigProperties {
     /** 推送目标用户 openid 列表 */
     private List<String> openidList = new ArrayList<>();
 
-    /** 天气API - appid */
-    private String weatherAppId;
+    /** 天气API - 和风天气 API Host（专属域名） */
+    private String weatherApiHost;
 
-    /** 天气API - appSecret */
-    private String weatherAppSecret;
+    /** 天气API - 开发者ID（JWT payload 的 iss，控制台 -> 设置 中查看） */
+    private String weatherDeveloperId;
+
+    /** 天气API - 项目ID（JWT payload 的 sub，控制台 -> 项目管理 中查看） */
+    private String weatherProjectId;
+
+    /** 天气API - 凭据ID（JWT header 的 kid，控制台 -> 项目管理 -> 凭据 中查看） */
+    private String weatherCredentialId;
+
+    /** 天气API - Ed25519 私钥（PKCS8 PEM 文本或 Base64 编码，JWT 签名用） */
+    private String weatherPrivateKey;
+
+    /** 天气API - API KEY（可选，配置后优先使用 API KEY 鉴权，无需私钥） */
+    private String weatherApiKey;
 
     /** 天气查询城市（volatile 保证多线程可见性） */
     private volatile String city;

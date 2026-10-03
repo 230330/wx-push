@@ -63,6 +63,13 @@
             <version>3.14.9</version>
         </dependency>
 
+        <!-- 和风天气 JWT 鉴权：Java 8 的 Ed25519(EdDSA) 签名支持 -->
+        <dependency>
+            <groupId>net.i2p.crypto</groupId>
+            <artifactId>eddsa</artifactId>
+            <version>0.3.0</version>
+        </dependency>
+
         <!-- XML解析：微信消息 -->
         <dependency>
             <groupId>dom4j</groupId>

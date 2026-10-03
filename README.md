@@ -36,7 +36,7 @@ com.aguo.wxpush
 
 2. config 层 — 配置属性绑定
 
-WxConfigProperties 通过 @ConfigurationProperties(prefix = "wx.config") 将 application.yml 中的配置项映射为 Java 对象，包含：微信公众号的 appId/appSecret、模板消息 ID、推送目标用户 openid 列表、天气 API 密钥、城市名、纪念日/生日日期、自定义消息文本、ApiSpace 的 token 等。这个类是全局的"配置中心"，几乎所有 Service 都依赖它。
+WxConfigProperties 通过 @ConfigurationProperties(prefix = "wx.config") 将 application.yml 中的配置项映射为 Java 对象，包含：微信公众号的 appId/appSecret、模板消息 ID、推送目标用户 openid 列表、和风天气 API 配置（API Host/开发者ID/项目ID/凭据ID/私钥/API KEY）、城市名、纪念日/生日日期、自定义消息文本、ApiSpace 的 token 等。这个类是全局的"配置中心"，几乎所有 Service 都依赖它。
 
 3. controller 层 — 请求入口 + 定时调度
 
@@ -66,7 +66,7 @@ MessageAssembler：消息组装服务，是推送内容的"大脑"。它协调�
 
 SendService / SendServiceImpl：推送调度中心。sendWeChatMsg() 编排了完整的推送流程——获取 token → 组装消息 → 遍历 openid 列表逐个发送模板消息 → 收集错误信息。messageHandle() 处理微信用户主动发来的消息，解析 XML 并提取文本内容。
 
-WeatherService / WeatherServiceImpl：天气数据服务。调用一客天气 API（v1.yiketianqi.com）获取当日天气和未来一周天气，然后从周数据中提取今/明/后三天的天气描述。
+WeatherService / WeatherServiceImpl：天气数据服务。调用和风天气 QWeather API（dev.qweather.com）获取实时天气和逐天预报：先通过城市查询接口（/geo/v2/city/lookup）将城市名转换为经纬度（带内存缓存），再调用实时天气（/weather/v1/current）和逐天预报（/weather/v1/daily）接口，从三天预报中提取今/明/后三天的天气描述。鉴权支持 JWT（Ed25519 签名，推荐）和 API KEY 两种方式，由 QWeatherJwtUtil 负责 JWT 生成。
 
 ProverbService / ProverbServiceImpl：名言警句服务。提供两个来源：一个是免费的随机名言 API（api.xygeng.cn），另一个是需要注册的 ApiSpace 名言接口（更稳定可控）。还集成了有道翻译 API（fanyi.youdao.com）将中文名言翻译为英文。
 
@@ -120,3 +120,24 @@ MessageUtil：微信消息 XML 解析工具。用 dom4j 的 SAXReader 解析微�
 → SendServiceImpl.sendWeChatMsg()  // 立即推送
 
 总体来说，这是一个结构清晰、职责分明的小型微信推送服务。配置层集中管理所有外部参数，服务层通过 MessageAssembler 做数据聚合、SendServiceImpl 做流程编排，工具层提供 HTTP 通信和数据格式转换等基础能力，控制层同时承担定时调度和接口路由的角色。
+
+和风天气 API 配置指南（dev.qweather.com）
+天气数据来自和风天气 QWeather API，鉴权支持两种方式（二选一，配置后自动识别）：
+
+方式一：JWT 鉴权（官方推荐）
+1. 登录控制台（https://console.qweather.com），在 设置 中查看开发者ID（已配置：Q96B30D7C0），在 项目管理 中查看项目ID。
+2. 本地生成 Ed25519 密钥对。无 openssl 时可在 Chrome 137+ 浏览器控制台（F12）执行官方文档中的 generateEd25519Pem() 脚本，输出 PrivateKey 和 PublicKey。
+3. 控制台 -> 项目管理 -> 创建凭据：选择"JSON Web Token"方式，将公钥（PublicKey，含 -----BEGIN PUBLIC KEY----- 标记的完整文本）粘贴保存，成功后获得凭据ID（kid）。
+4. 配置环境变量（或直接写入 application.yml）：
+   - WEATHER_PROJECT_ID：项目ID（sub）
+   - WEATHER_CREDENTIAL_ID：凭据ID（kid）
+   - WEATHER_PRIVATE_KEY：Ed25519 私钥，支持 PKCS8 PEM 文本或 Base64 编码（环境变量建议用 Base64）
+方式二：API KEY 鉴权（简单）
+1. 控制台 -> 项目管理 -> 创建凭据：选择"API KEY"方式，创建后复制 API KEY。
+2. 配置环境变量 WEATHER_API_KEY（配置后优先使用 API KEY，无需私钥）。
+
+启动方式与变量注入：
+- VS Code 调试启动：在 .vscode/launch.json 的 env 中配置上述变量（当前已配置 API KEY 方式）。
+- 命令行启动：先执行 `. .\env.ps1` 加载环境变量，再 `mvn spring-boot:run`。
+- 若 API KEY 与 JWT 均未配置，应用启动后天气接口会输出"鉴权配置缺失"错误日志（不会崩溃），
+  检查环境变量注入即可。

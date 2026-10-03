@@ -9,9 +9,19 @@ wx:
     openidList:
       - "${WX_OPENID_1}"
       - "${WX_OPENID_2}"
-    # === 天气API配置 ===
-    weatherAppId: "${WEATHER_APP_ID}"
-    weatherAppSecret: "${WEATHER_APP_SECRET}"
+    # === 和风天气 QWeather API 配置（https://dev.qweather.com） ===
+    # API Host（专属域名，控制台 -> 设置 中查看）
+    weatherApiHost: "${WEATHER_API_HOST:pj5egpeqyt.re.qweatherapi.com}"
+    # 开发者ID（JWT 的 iss，控制台 -> 设置 中查看）
+    weatherDeveloperId: "${WEATHER_DEV_ID:Q96B30D7C0}"
+    # 项目ID（JWT 的 sub，控制台 -> 项目管理 中查看）
+    weatherProjectId: "${WEATHER_PROJECT_ID:2F87MR7MYB}"
+    # 凭据ID（JWT 的 kid，控制台 -> 项目管理 -> 凭据 中查看）
+    weatherCredentialId: "${WEATHER_CREDENTIAL_ID}"
+    # Ed25519 私钥（PKCS8 PEM 文本或 Base64 编码，JWT 签名用）
+    weatherPrivateKey: "${WEATHER_PRIVATE_KEY:}"
+    # API KEY（可选：配置后优先使用 API KEY 鉴权，无需私钥）
+    weatherApiKey: "${WEATHER_API_KEY:}"
     city: "${WEATHER_CITY:贵阳}"
     # === 纪念日 & 生日配置 ===
     togetherDate: "${TOGETHER_DATE:2023-03-30}"

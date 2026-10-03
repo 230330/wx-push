@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,13 +30,30 @@ public class HttpUtil {
      * GET请求（默认超时）
      */
     public static String sendGet(String url, String param) {
-        return sendGet(url, param, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+        return sendGet(url, param, null, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
     }
 
     /**
      * GET请求（自定义超时）
      */
     public static String sendGet(String url, String param, int connectTimeout, int readTimeout) {
+        return sendGet(url, param, null, connectTimeout, readTimeout);
+    }
+
+    /**
+     * GET请求（自定义请求头，默认超时）
+     *
+     * @param headers 额外的请求头
+     */
+    public static String sendGet(String url, String param, Map<String, String> headers) {
+        return sendGet(url, param, headers, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
+     * GET请求（自定义请求头和超时）
+     */
+    public static String sendGet(String url, String param, Map<String, String> headers,
+                                 int connectTimeout, int readTimeout) {
         if (url == null || url.trim().isEmpty()) {
             logger.error("GET请求失败：URL不能为空");
             return null;
@@ -51,13 +69,18 @@ public class HttpUtil {
                 .readTimeout(readTimeout, TimeUnit.SECONDS)
                 .build();
 
-        Request request = new Request.Builder()
+        Request.Builder builder = new Request.Builder()
                 .url(fullUrl)
                 .get()
                 .addHeader("accept", "*/*")
                 .addHeader("connection", "Keep-Alive")
-                .addHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .build();
+                .addHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+        if (headers != null) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                builder.addHeader(entry.getKey(), entry.getValue());
+            }
+        }
+        Request request = builder.build();
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {

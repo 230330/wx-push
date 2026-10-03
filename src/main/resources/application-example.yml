@@ -15,9 +15,22 @@ wx:
     openidList:
       - "openid_user1"
       - "openid_user2"
-    # === 天气API配置（一客天气 https://v1.yiketianqi.com） ===
-    weatherAppId: "your_weather_appid"
-    weatherAppSecret: "your_weather_appsecret"
+    # === 和风天气 QWeather API 配置（https://dev.qweather.com） ===
+    # API Host：专属域名，登录控制台 -> 设置 中查看
+    weatherApiHost: "pj5egpeqyt.re.qweatherapi.com"
+    # 开发者ID（JWT 的 iss）：控制台 -> 设置，形如 Q96B30D7C0
+    weatherDeveloperId: "Q96B30D7C0"
+    # 项目ID（JWT 的 sub）：控制台 -> 项目管理
+    weatherProjectId: "your_project_id"
+    # 凭据ID（JWT 的 kid）：控制台 -> 项目管理 -> 凭据（创建 JWT 凭据后获得）
+    weatherCredentialId: "your_credential_id"
+    # Ed25519 私钥（PKCS8 PEM 文本或 Base64 编码）：
+    # 1. 本地生成 Ed25519 密钥对（见 README 说明）
+    # 2. 将公钥上传到控制台创建 JWT 凭据
+    weatherPrivateKey: "your_private_key_pem_or_base64"
+    # API KEY（可选）：控制台 -> 项目管理 -> 创建凭据时选择 API KEY 方式，
+    # 配置后优先使用 API KEY 鉴权（请求头 X-QW-Api-Key），无需私钥
+    weatherApiKey: ""
     city: "贵阳"
     # === 纪念日 & 生日配置 ===
     togetherDate: "2023-03-30"
