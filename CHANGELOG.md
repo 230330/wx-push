@@ -140,3 +140,57 @@ ERROR WeatherServiceImpl - 无法定位城市 [贵阳]，请检查城市名配�
 
 **3. launch.json 更新后**：用户重新从 VS Code 启动即可加载正确的天气环境变量，
 天气数据可正常获取（环境变量注入路径与集成测试一致）。
+
+---
+
+## 2026-10-14 文档与代码一致性对齐（README / 代码风格 / 健壮性）
+
+### 背景
+
+通读代码结构时发现 README 描述与代码已存在漂移，另有若干写法与项目既有约定不一致。
+本次只做一致性对齐与低风险清理，不改变推送业务逻辑与接口响应结构。
+
+### 变更内容
+
+| 文件 | 改动说明 |
+|---|---|
+| README.md | 目录树补全 task/ScheduledTask.java、utils/QWeatherJwtUtil.java、utils/SignatureUtil.java，修正 utils 子项缩进；controller 层不再声称兼任定时调度（改指向 task 层）；normalizeCity() 归属修正为 WxConfigProperties 静态方法；config 层描述补充 verifyToken；流程一/二/三中的触发入口与 normalizeCity 调用点同步更正；末尾新增《开发约定》一节 |
+| src/main/java/com/aguo/wxpush/config/WxConfigProperties.java | normalizeCity() 由「含省/市/区/县即砍掉最后一个字符」改为「先 trim，仅当尾部确实以该后缀结尾且截断后仍有内容才去除」，避免 "市"→"" 这类空串结果 |
+| src/main/java/com/aguo/wxpush/service/impl/SendServiceImpl.java | buildResult() 移除从未使用的 boolean success 参数（响应 JSON 结构不变，仍为 result / result+errorData） |
+| src/main/java/com/aguo/wxpush/service/impl/ProverbServiceImpl.java | getOneProverbRandom() 的 do-while（免费接口持续返回超长句子时会无限请求）改为最大 5 次的 for 循环，「超长重试、请求失败返回 null」的语义保持不变；25 提取为 MAX_PROVERB_LENGTH 常量 |
+| src/main/java/com/aguo/wxpush/utils/JsonObjectUtil.java | 移除遗留的 IDE 模板注释（@Author / @DateTime / @Description: TODO），补类与方法的 Javadoc，方法参数逗号后补空格 |
+
+### 自证
+
+**1. 编译（通过）**
+
+- 命令：`mvn -o clean compile -DskipTests`，退出码 0，`Compiling 21 source files to target\classes`，BUILD SUCCESS。
+
+**2. 集成测试（通过，含真实和风天气 API 调用）**
+
+- 首次 `mvn -o test -Dtest=WeatherServiceIntegrationTest` **失败**：
+  `ClassFormatError: Invalid method Code length 0 in class file com/aguo/wxpush/config/WxConfigProperties`（Tests run: 3, Errors: 3）。
+  判定为 target/classes 下过期的增量产物，执行 `mvn -o clean compile` 后该错误消失。
+  （经验：改动类结构后若遇到莫名的 ClassFormatError，先 clean 再复测。）
+- 加载环境变量（`. .\env.ps1`）后重跑：`mvn -o test -Dtest=WeatherServiceIntegrationTest`
+  → **Tests run: 3, Failures: 0, Errors: 0, BUILD SUCCESS**。
+
+**3. normalizeCity() 行为验证（通过）**
+
+临时脚本 `_scratch/NormalizeCityCheck.java` 编译运行（验证后已删除该目录）：
+
+| 输入 | 输出 |
+|---|---|
+| 贵阳市 | 贵阳 |
+| 贵阳 | 贵阳 |
+| 贵州省 | 贵州 |
+| " 上海市 " | 上海 |
+| 市 | 市（旧实现会得到空串） |
+| 空串 / null | 原样返回 |
+
+**已知限制（本次未改，亦无回归）**：多级输入 "北京市朝阳区" 仅去掉末尾"区"，得 "北京市朝阳"；
+"内蒙古自治区" 去掉末尾"区"得 "内蒙古自治"。要正确处理需引入行政区划映射表，属独立需求。
+
+### 待办
+
+- [ ] getOneProverbRandom() 未补单元测试（该方法不在推送主链路上，且依赖外部免费接口，改为有界重试后仅做了代码走查）

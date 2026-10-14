@@ -6,8 +6,10 @@ com.aguo.wxpush
 ├── WxPushApplication.java       ← 启动类
 ├── config/                      ← 配置层
 │   └── WxConfigProperties.java
-├── controller/                  ← 控制层（接口入口）
+├── controller/                  ← 控制层（HTTP 接口入口）
 │   └── WxController.java
+├── task/                        ← 定时任务层
+│   └── ScheduledTask.java
 ├── entity/                      ← 实体层
 │   └── TextMessage.java
 ├── exception/                   ← 异常处理层
@@ -24,10 +26,12 @@ com.aguo.wxpush
 │       ├── SendServiceImpl.java
 │       └── WeatherServiceImpl.java
 └── utils/                       ← 工具类层
-├── DateUtil.java
-├── HttpUtil.java
-├── JsonObjectUtil.java
-└── MessageUtil.java
+    ├── DateUtil.java
+    ├── HttpUtil.java
+    ├── JsonObjectUtil.java
+    ├── MessageUtil.java
+    ├── QWeatherJwtUtil.java
+    └── SignatureUtil.java
 
 各层详解：
 1. 启动类 — WxPushApplication
@@ -36,17 +40,21 @@ com.aguo.wxpush
 
 2. config 层 — 配置属性绑定
 
-WxConfigProperties 通过 @ConfigurationProperties(prefix = "wx.config") 将 application.yml 中的配置项映射为 Java 对象，包含：微信公众号的 appId/appSecret、模板消息 ID、推送目标用户 openid 列表、和风天气 API 配置（API Host/开发者ID/项目ID/凭据ID/私钥/API KEY）、城市名、纪念日/生日日期、自定义消息文本、ApiSpace 的 token 等。这个类是全局的"配置中心"，几乎所有 Service 都依赖它。
+WxConfigProperties 通过 @ConfigurationProperties(prefix = "wx.config") 将 application.yml 中的配置项映射为 Java 对象，包含：微信公众号的 appId/appSecret、用于签名验证的 verifyToken、模板消息 ID、推送目标用户 openid 列表、和风天气 API 配置（API Host/开发者ID/项目ID/凭据ID/私钥/API KEY）、城市名、纪念日/生日日期、自定义消息文本、ApiSpace 的 token 等。这个类是全局的"配置中心"，几乎所有 Service 都依赖它。类内还提供了静态方法 normalizeCity()，用于去除城市名尾部的"省/市/区/县"后缀。
 
-3. controller 层 — 请求入口 + 定时调度
+3. controller 层 — 请求入口
 
-WxController 同时承担了两个角色：HTTP 接口和定时任务触发器。它暴露了四个端点：
+WxController 只负责 HTTP 接口路由，定时调度已独立到 task 层。它暴露了四个端点：
 
-GET /wx/send：手动触发消息推送，同时被 @Scheduled(cron = "0 30 8 ? * *") 标注，每天早上 8:30 自动执行。
+GET /wx/send：手动触发消息推送（仅供手动调用，定时推送见 task 层）。
 GET /wx/changeConfig?city=xxx：通过网页表单修改天气查询城市，修改后立即触发一次推送。
 GET /wx/receiveMsg：微信服务器接入验证（echostr 回传）。
 POST /wx/receiveMsg：接收微信用户发来的文本消息，解析出城市名后切换城市并推送。
-控制器里还有一个 normalizeCity() 私有方法，用于去除城市名中的"省/市/区/县"后缀。
+GET/POST /wx/receiveMsg 都会先调用 SignatureUtil.verify() 校验微信签名（verifyToken 未配置时跳过校验，兼容开发环境）。
+
+3.1 task 层 — 定时任务
+
+ScheduledTask 通过 @Scheduled(cron = "0 30 8 ? * *") 每天早上 8:30 触发一次完整推送，异常在任务内部捕获记录，不影响调度线程。
 
 4. entity 层 — 数据实体
 
@@ -76,6 +84,8 @@ HttpUtil：基于 OkHttp 封装的 HTTP 客户端，提供 GET、POST（JSON 格
 DateUtil：日期工具类，基于 Java 8 java.time API，提供日期格式化、星期计算、天数差/月数差/年数差计算等方法。
 JsonObjectUtil：简单的封装方法，将 value 和 color 打包为微信模板消息所需的 JSONObject 格式。
 MessageUtil：微信消息 XML 解析工具。用 dom4j 的 SAXReader 解析微信回调请求中的 XML 数据，用 XStream 将 TextMessage 对象序列化为 XML。
+SignatureUtil：微信签名验证工具类，实现 sha1(sort(token, timestamp, nonce)) 的校验逻辑。
+QWeatherJwtUtil：和风天气 JWT 生成工具，使用 Ed25519(EdDSA) 私钥签名，私钥兼容 PKCS8 PEM 文本与 Base64 两种格式。
 8. 前端页面 — static/index.html
 
 一个极简的 HTML 表单页面，用于通过浏览器手动输入城市名并提交到 /wx/changeConfig 接口，实现天气城市的在线切换。
@@ -85,7 +95,7 @@ MessageUtil：微信消息 XML 解析工具。用 dom4j 的 SAXReader 解析微�
 
 流程一：每日定时推送（主流程）
 这是最核心的流程，每天早上 8:30 由 Spring 的 @Scheduled 自动触发：
-定时器触发 → WxController.send()
+定时器触发 → ScheduledTask.dailyPush()
 → SendServiceImpl.sendWeChatMsg()
 → AccessTokenService.getAccessToken()     // 获取/缓存微信token
 → MessageAssembler.assembleTemplateData() // 组装消息内容
@@ -106,7 +116,7 @@ MessageUtil：微信消息 XML 解析工具。用 dom4j 的 SAXReader 解析微�
 → 微信服务器 POST /wx/receiveMsg
 → SendServiceImpl.messageHandle()
 → MessageUtil.parseXml() 解析XML获取消息内容
-→ WxController 中提取城市名 → normalizeCity() 去除后缀
+→ WxController 中提取城市名 → WxConfigProperties.normalizeCity() 去除后缀
 → wxConfig.setCity() 更新配置
 → SendServiceImpl.sendWeChatMsg()  // 立即触发一次完整推送
 
@@ -114,12 +124,24 @@ MessageUtil：微信消息 XML 解析工具。用 dom4j 的 SAXReader 解析微�
 通过浏览器访问静态页面修改城市：
 用户访问 index.html → 填入城市名 → 提交表单
 → GET /wx/changeConfig?city=xxx
-→ normalizeCity() 去除后缀
+→ WxConfigProperties.normalizeCity() 去除后缀
 → wxConfig.setCity() 更新配置
 → 页面返回"更新成功"提示
 → SendServiceImpl.sendWeChatMsg()  // 立即推送
 
-总体来说，这是一个结构清晰、职责分明的小型微信推送服务。配置层集中管理所有外部参数，服务层通过 MessageAssembler 做数据聚合、SendServiceImpl 做流程编排，工具层提供 HTTP 通信和数据格式转换等基础能力，控制层同时承担定时调度和接口路由的角色。
+总体来说，这是一个结构清晰、职责分明的小型微信推送服务。配置层集中管理所有外部参数，服务层通过 MessageAssembler 做数据聚合、SendServiceImpl 做流程编排，工具层提供 HTTP 通信和数据格式转换等基础能力，控制层负责接口路由，task 层负责定时调度。
+
+开发约定
+本项目在长期迭代中形成了一些固定约定，改动代码时请保持一致：
+
+- 语言与框架：Java 8 语法（不使用 var、record、List.of 等新特性），Spring Boot 2.7 沿用 javax.* 命名空间；依赖注入统一使用 @Resource 字段注入。
+- 注释：统一使用中文；类头 Javadoc 说明职责，字段用单行 /** ... */，关键分支补"为什么这么做"的行内注释。
+- 日志：统一 @Slf4j + log.info/warn/error("中文说明: {}", 参数)，异常分支带上异常对象。
+- 错误处理：工具类与 Service 尽量不抛异常，失败返回 null 或空集合，由调用方判空并记录日志；只有 AccessToken 获取失败才抛 WxPushException。推送流程"能推多少推多少"，失败项收集后随结果一起返回，不中断整体。
+- HTTP 调用：统一走 HttpUtil 的静态方法，返回 String，失败返回 null；新增能力用重载方法而非修改已有签名。
+- 配置：外部参数集中在 WxConfigProperties；敏感值在 application.yml 中以 ${ENV_VAR:默认值} 占位，真实值只写在被 .gitignore 排除的 env.ps1 与 .vscode/launch.json 中。
+- 变更记录：CHANGELOG.md 每次变更须写「变更内容」+「自证」，自证需同时记录成功与失败结果。
+- 环境提示：env.ps1 必须保存为带 BOM 的 UTF-8，否则 Windows PowerShell 5.1 会按 ANSI 误读，导致中文注释乱码、脚本加载失败。
 
 和风天气 API 配置指南（dev.qweather.com）
 天气数据来自和风天气 QWeather API，鉴权支持两种方式（二选一，配置后自动识别）：

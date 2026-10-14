@@ -41,7 +41,7 @@ public class SendServiceImpl implements SendService {
         String accessToken = accessTokenService.getAccessToken();
         if (!StringUtils.hasText(accessToken)) {
             log.error("token获取失败，请检查appId、appSecret配置");
-            return buildResult(false, "token获取失败");
+            return buildResult("token获取失败");
         }
 
         // 组装模板消息数据
@@ -63,11 +63,11 @@ public class SendServiceImpl implements SendService {
 
         if (!errorList.isEmpty()) {
             log.warn("部分用户推送失败: {}", errorList);
-            return buildResult(false, "部分推送失败", errorList);
+            return buildResult("部分推送失败", errorList);
         }
 
         log.info("消息推送成功！");
-        return buildResult(true, "消息推送成功");
+        return buildResult("消息推送成功");
     }
 
     /**
@@ -173,13 +173,13 @@ public class SendServiceImpl implements SendService {
         }
     }
 
-    private String buildResult(boolean success, String message) {
+    private String buildResult(String message) {
         JSONObject result = new JSONObject();
         result.put("result", message);
         return result.toJSONString();
     }
 
-    private String buildResult(boolean success, String message, List<JSONObject> errorList) {
+    private String buildResult(String message, List<JSONObject> errorList) {
         JSONObject result = new JSONObject();
         result.put("result", message);
         result.put("errorData", errorList);

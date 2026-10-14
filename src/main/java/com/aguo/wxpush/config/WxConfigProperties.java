@@ -83,7 +83,8 @@ public class WxConfigProperties {
     private String token;
 
     /**
-     * 标准化城市名称：去除省/市/区/县后缀
+     * 标准化城市名称：去除尾部的省/市/区/县后缀
+     * 仅在城市名以该后缀结尾且去除后仍有内容时截断，避免产生空串
      *
      * @param city 原始城市名称
      * @return 标准化后的城市名称
@@ -92,9 +93,11 @@ public class WxConfigProperties {
         if (city == null || city.isEmpty()) {
             return city;
         }
-        if (city.contains("省") || city.contains("市") || city.contains("区") || city.contains("县")) {
-            return city.substring(0, city.length() - 1);
+        String trimmed = city.trim();
+        if (trimmed.length() > 1 && (trimmed.endsWith("省") || trimmed.endsWith("市")
+                || trimmed.endsWith("区") || trimmed.endsWith("县"))) {
+            return trimmed.substring(0, trimmed.length() - 1);
         }
-        return city;
+        return trimmed;
     }
 }

@@ -24,24 +24,34 @@ public class ProverbServiceImpl implements ProverbService {
 
     private static final Random RANDOM = new Random();
 
+    /** 随机名言最大尝试次数（该免费接口可能持续返回超长句子，需加界避免死循环） */
+    private static final int MAX_PROVERB_ATTEMPT = 5;
+
+    /** 随机名言可接受的最大长度（超过则重新获取） */
+    private static final int MAX_PROVERB_LENGTH = 25;
+
     @Override
     public String getOneProverbRandom() {
-        String proverb;
-        do {
-            proverb = null;
+        String proverb = null;
+        // 逐个尝试：句子过长则重试，请求失败或达到最大次数即结束
+        for (int i = 0; i < MAX_PROVERB_ATTEMPT; i++) {
             try {
                 String response = HttpUtil.sendGet("https://api.xygeng.cn/one", null);
                 if (!StringUtils.hasText(response)) {
                     log.warn("随机名言API响应为空");
-                    continue;
+                    return null;
                 }
                 JSONObject jsonObject = JSONObject.parseObject(response);
                 JSONObject content = jsonObject.getJSONObject("data");
                 proverb = content.getString("content");
+                if (proverb == null || proverb.length() <= MAX_PROVERB_LENGTH) {
+                    return proverb;
+                }
             } catch (Exception e) {
                 log.error("获取随机名言失败: {}", e.getMessage(), e);
+                return null;
             }
-        } while (proverb != null && proverb.length() > 25);
+        }
         return proverb;
     }
 
